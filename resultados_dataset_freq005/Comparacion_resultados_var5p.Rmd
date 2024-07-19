@@ -1,0 +1,219 @@
+---
+title: "Comparacion Modelos Var1p"
+author: "Juan Pedro Lopez Marin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+resultado_modelo_tbag_svml = readRDS("modelo_tbag_svml_var5p")
+resultado_modelo_tbag_svmr = readRDS("modelo_tbag_svmr_var5p")
+resultado_modelo_tbag_svmp = readRDS("modelo_tbag_svmp_var5p")
+resultado_modelo_tbag_rf = readRDS("modelo_tbag_rf_var5p")
+resultado_modelo_tbag_nb = readRDS("modelo_tbag_nb_var5p")
+resultado_modelo_lda_svml = readRDS("modelo_lda_svml_var5p")
+resultado_modelo_lda_svmr = readRDS("modelo_lda_svmr_var5p")
+resultado_modelo_lda_svmp = readRDS("modelo_lda_svmp_var5p")
+resultado_modelo_lda_rf = readRDS("modelo_lda_rf_var5p")
+resultado_modelo_lda_nb = readRDS("modelo_lda_nb_var5p")
+resultado_modelo_nb_svml = readRDS("modelo_nb_svml_var5p")
+resultado_modelo_nb_svmr = readRDS("modelo_nb_svmr_var5p")
+resultado_modelo_nb_svmp = readRDS("modelo_nb_svmp_var5p")
+resultado_modelo_nb_rf = readRDS("modelo_nb_rf_var5p")
+resultado_modelo_nb_nb = readRDS("modelo_nb_nb_var5p")
+resultado_modelo_rf_svml = readRDS("modelo_rf_svml_var5p")
+resultado_modelo_rf_svmr = readRDS("modelo_rf_svmr_var5p")
+resultado_modelo_rf_svmp = readRDS("modelo_rf_svmp_var5p")
+resultado_modelo_rf_rf = readRDS("modelo_rf_rf_var5p")
+resultado_modelo_rf_nb = readRDS("modelo_rf_nb_var5p")
+```
+
+```{r}
+objetos = list(
+  tbag_svml = resultado_modelo_tbag_svml,
+  tbag_svmr = resultado_modelo_tbag_svmr,
+  tbag_svmp = resultado_modelo_tbag_svmp,
+  tbag_rf = resultado_modelo_tbag_rf,
+  tbag_nb = resultado_modelo_tbag_nb,
+  lda_svml = resultado_modelo_lda_svml,
+  lda_svmr = resultado_modelo_lda_svmr,
+  lda_svmp = resultado_modelo_lda_svmp,
+  lda_rf = resultado_modelo_lda_rf,
+  lda_nb = resultado_modelo_lda_nb,
+  nb_svml = resultado_modelo_nb_svml,
+  nb_svmr = resultado_modelo_nb_svmr,
+  nb_svmp = resultado_modelo_nb_svmp,
+  nb_rf = resultado_modelo_nb_rf,
+  nb_nb = resultado_modelo_nb_nb,
+  rf_svml = resultado_modelo_rf_svml,
+  rf_svmr = resultado_modelo_rf_svmr,
+  rf_svmp = resultado_modelo_rf_svmp,
+  rf_rf = resultado_modelo_rf_rf,
+  rf_nb = resultado_modelo_rf_nb
+)
+```
+
+```{r}
+categoria_muestras = read.csv(file = "samples.csv", sep = "\t")
+
+
+variantes_1pc = read.csv2(file = "dataset1_1pc.csv",sep = "\t")
+variantes_1pc$grupo = categoria_muestras$class
+variantes_1pc$grupo = as.factor(variantes_1pc$grupo)
+rownames(variantes_1pc) = variantes_1pc[,1]
+variantes_1pc = variantes_1pc[,-1]
+
+variantes_1pc = variantes_1pc %>%
+    select(last_col(), everything())
+```
+
+```{r}
+resultados_test_df <- data_frame(
+  Algoritmo = character(),
+  Precisión = numeric(),
+  Sens_Cardio = numeric(),
+  Sens_Hemato = numeric(),
+  Sens_Neuro = numeric(),
+  Espec_Cardio = numeric(),
+  Espec_Hemato = numeric(),
+  Espec_Neuro = numeric(),
+  Hiperparametros = character(),
+  Condiciones = character()
+)
+
+for (nombre in names(objetos)){
+  set.seed(1234)
+
+  objeto = objetos[[nombre]]
+  
+  parametros_model <-  unlist(strsplit(nombre, split = "_"))
+  
+  if (parametros_model[1] == "tbag"){
+    parametros_model[1] = "treebag"
+  }
+
+  
+  
+  resultado_rfe = readRDS(paste0('resultado_rfe_',parametros_model[1],'_664'))
+  
+  variantes_1pc_reducido = variantes_1pc[,c(predictors(resultado_rfe),"grupo")]
+  
+  set.seed(1234)
+
+  particion_2 = createDataPartition(variantes_1pc_reducido$grupo, p=0.85, list = FALSE)
+  train_data = variantes_1pc_reducido[particion_2,]
+  test_data = variantes_1pc_reducido[-particion_2,]
+  
+   # Realizar predicción
+  set.seed(1234)
+  prediccion <- predict(objeto, newdata = test_data)
+  
+  # Calcular matriz de confusión
+  set.seed(1234)
+  matriz_conf <- confusionMatrix(prediccion, test_data$grupo)
+  
+  # Combinación de hiperparámetros
+  combinacion_hiperparametros <- paste(names(objeto$bestTune), objeto$bestTune, sep = "=", collapse = ", ")
+  
+  # Métricas de calidad
+  
+  metricas_calidad <- c(
+    round(as.numeric(matriz_conf$overall["Accuracy"][[1]]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: cardio","Sensitivity"]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: hemato","Sensitivity"]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: neuro_muscular","Sensitivity"]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: cardio","Specificity"]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: hemato","Specificity"]), 4),
+    round(as.numeric(matriz_conf$byClass["Class: neuro_muscular","Specificity"]), 4)
+    )
+  
+  
+  
+  # Crear fila a insertar
+  fila_a_insertar <- c(
+    objeto$method,
+    metricas_calidad,
+    combinacion_hiperparametros,
+    nombre
+  )
+  
+
+  resultados_test_df <- bind_rows(resultados_test_df, data_frame(
+    Algoritmo = fila_a_insertar[1],
+    Precisión = as.numeric(fila_a_insertar[2]),
+    Sens_Cardio = as.numeric(fila_a_insertar[3]),
+    Sens_Hemato = as.numeric(fila_a_insertar[4]),
+    Sens_Neuro = as.numeric(fila_a_insertar[5]),
+    Espec_Cardio = as.numeric(fila_a_insertar[6]),
+    Espec_Hemato = as.numeric(fila_a_insertar[7]),
+    Espec_Neuro = as.numeric(fila_a_insertar[8]),
+    Hiperparametros = fila_a_insertar[9],
+    Condiciones = fila_a_insertar[10]
+  ))
+  
+}
+
+saveRDS(resultados_test_df, "resultados_comparacion_3class_var5p")
+
+resultados_test_df[order(resultados_test_df$Precisión, decreasing = TRUE),]
+```
+
+
+# Generación heatmap 
+
+
+```{r}
+comparacion_modelos_var5p = readRDS("resultados_comparacion_3class_var5p")
+```
+
+
+```{r}
+library(pheatmap)
+
+var5p_heatmap = comparacion_modelos_var5p[,c(2,3,4,5,6,7,8,10)]
+var5p_heatmap
+var5p_heatmap = as.data.frame(var5p_heatmap)
+rownames(var5p_heatmap) = var5p_heatmap$Condiciones
+var5p_heatmap = var5p_heatmap[,-8]
+var5p_heatmap = as.matrix(var5p_heatmap)
+```
+
+```{r}
+library(ggplot2)
+library(grid)
+library(pheatmap)
+
+
+
+crear_heatmap <- function(matriz, color_palette, main_title, filename) {
+    # Crear el heatmap
+    heatmap <- pheatmap(matriz, 
+                        cluster_rows = TRUE,
+                        cluster_cols = TRUE,
+                        treeheight_row = 0,    # Ocultar dendograma de filas
+                        treeheight_col = 0,    # Ocultar dendograma de columnas
+                        show_rownames = TRUE,
+                        fontsize_col = 13,
+                        angle_col = 90,        # Rotar nombres de columnas 45 grados
+                        color = color_palette,
+                        main = main_title)
+    
+    # Guardar el heatmap como PNG
+    ggsave(filename, plot = heatmap, device = "png")
+    
+    # Retornar el objeto heatmap (opcional)
+    return(heatmap)
+}
+
+colores_heatmap <- colorRampPalette(c("dodgerblue3","white", "firebrick1"))(50)
+
+```
+
+```{r}
+crear_heatmap(var5p_heatmap, colores_heatmap, "Resultados - Variantes con MAF local > 0.05", "heatmap var5p.png")
+```
+
