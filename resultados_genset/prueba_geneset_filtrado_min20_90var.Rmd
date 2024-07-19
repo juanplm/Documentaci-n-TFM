@@ -1,0 +1,396 @@
+---
+title: "prueba genes filtro angel"
+author: "Juan Pedro Lopez Marin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(doParallel)
+library(dplyr)
+library(FactoMineR)
+library(factoextra)
+```
+
+```{r}
+categoria_muestras = read.csv(file = "samples.csv", sep = "\t")
+categoria_muestras
+```
+
+```{r}
+genes_variantes = as.data.frame(t(read.csv2(file = "geneset.csv", sep = "\t")))
+names(genes_variantes) = genes_variantes[1,]
+genes_variantes = genes_variantes[-1,]
+genes_variantes[] <- lapply(genes_variantes, function(x) as.numeric(as.character(x)))
+```
+
+```{r}
+genes_variantes$grupo = categoria_muestras$class
+genes_variantes = genes_variantes[genes_variantes$grupo != "neuro_muscular", ]
+genes_variantes$grupo = as.factor(genes_variantes$grupo)
+
+
+genes_variantes = genes_variantes %>%
+    select(last_col(), everything())
+```
+
+
+```{r}
+suma_variantes = colSums(genes_variantes[-1])
+genes_filtrados = suma_variantes > 20
+genes_variantes_min20 = genes_variantes[, genes_filtrados]
+```
+
+```{r}
+pca_result = prcomp(genes_variantes_min20[,-1],center = TRUE )
+```
+
+
+```{r}
+# Scree plot para visualizar la varianza explicada
+screeplot(pca_result, type = "lines", main = "Scree Plot")
+
+# Porcentaje de varianza explicada por cada componente
+explained_variance <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+plot(explained_variance, type = "b", xlab = "Componentes Principales", ylab = "Porcentaje de Varianza Explicada", main = "Varianza Explicada")
+
+# Porcentaje acumulado de varianza explicada
+cumulative_variance <- cumsum(explained_variance)
+plot(cumulative_variance, type = "b", xlab = "Componentes Principales", ylab = "Varianza Explicada Acumulada", main = "Varianza Explicada Acumulada")
+abline(h = 0.90, col = "red", lty = 2)  # Por ejemplo, una línea en el 90% de varianza explicada
+
+```
+
+```{r}
+
+# Porcentaje de varianza explicada por cada componente
+explained_variance <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+
+# Porcentaje acumulado de varianza explicada
+cumulative_variance <- cumsum(explained_variance)
+
+# Determinar el número de componentes que explican al menos el 85% de la varianza
+num_components <- which(cumulative_variance >= 0.9)[1]
+
+# Seleccionar las componentes principales que explican el 85% de la varianza
+selected_pcs <- pca_result$x[, 1:num_components]
+
+# Convertir a dataframe
+selected_pcs_df <- as.data.frame(selected_pcs)
+
+# Añadir la variable de respuesta al dataframe de componentes principales seleccionados
+selected_pcs_df$grupo <- as.factor(genes_variantes_min20$grupo)
+
+# Verificar el número de componentes seleccionados y la varianza explicada
+print(paste("Número de componentes seleccionados:", num_components))
+print(paste("Varianza explicada acumulada:", cumulative_variance[num_components]))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Creación de modelo SVM con las mejores variables a priori
+
+```{r}
+set.seed(1234)
+
+control.cv.10 = trainControl(method = "repeatedcv", 
+                                  number = 10,
+                                  repeats = 2,
+                                  seeds = NULL, 
+                                  returnResamp = "final",
+                                  verboseIter = FALSE,
+                                  allowParallel = TRUE)
+```
+
+
+```{r}
+set.seed(1234)
+
+pca_particion_2 = createDataPartition(selected_pcs_df$grupo, p=0.85, list = FALSE)
+pca_train_data = selected_pcs_df[pca_particion_2,]
+pca_test_data = selected_pcs_df[-pca_particion_2,]
+```
+
+```{r}
+set.seed(1234)
+
+tiempo = Sys.time()
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+param.lineal = expand.grid(cost = c(0.001, 0.01, 0.1, 10, 100))
+
+pca_training.svm.lineal = train(grupo ~ ., data = pca_train_data,
+                      method = "svmLinear2",
+                      tuneGrid = param.lineal,
+                      metric = "Accuracy",
+                      preProcess = c("center", "scale"),
+                      trControl = control.cv.10)
+
+tiempo.fin = Sys.time() - tiempo
+print(tiempo.fin)
+
+stopCluster(cl)
+
+saveRDS(pca_training.svm.lineal, "genset_var90_min20_svml")
+```
+```{r}
+pca_mejor_svml_6744 = pca_training.svm.lineal$results[order(pca_training.svm.lineal$results$Accuracy, decreasing = TRUE),][1,]["Accuracy"]
+```
+
+```{r}
+set.seed(1234)
+
+random.cv.10 = trainControl(method = "repeatedcv", 
+                                  number = 10,
+                                  repeats = 2,
+                                  seeds = NULL, 
+                                  returnResamp = "final",
+                                  search = "random",
+                                  verboseIter = FALSE,
+                                  allowParallel = TRUE)
+
+tiempo = Sys.time()
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+#param.radial = expand.grid(C = c(0.1,1,10), sigma = c(0.03619703, 0.1, 1))
+
+pca_training.svm.radial = train(grupo ~ ., data = pca_train_data,
+                      method = "svmRadial",
+                      tuneLength = 20,
+                      metric = "Accuracy",
+                      preProcess = c("center", "scale"),
+                      trControl = random.cv.10)
+
+
+tiempo.fin = Sys.time() - tiempo
+print(tiempo.fin)
+
+
+stopCluster(cl)
+
+saveRDS(pca_training.svm.radial, "genset_var90_min20_svmr_auto")
+```
+```{r}
+pca_training.svm.radial
+```
+
+```{r}
+set.seed(1234)
+
+tiempo = Sys.time()
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+param.radial = expand.grid(C = c(0.5,1,5,10,25,40,70,100), sigma = c(0.0001,0.0005,0.001,0.0012,0.0015,0.002,0.003,0.004,0.005,0.01,0.02,0.03,0.05))
+
+
+pca_training.svm.radial_manual = train(grupo ~ ., data = pca_train_data,
+                      method = "svmRadial",
+                      tuneGrid = param.radial,
+                      metric = "Accuracy",
+                      preProcess = c("center", "scale"),
+                      trControl = random.cv.10)
+
+
+tiempo.fin = Sys.time() - tiempo
+print(tiempo.fin)
+ 
+
+stopCluster(cl)
+
+saveRDS(pca_training.svm.radial_manual, "genset_var90_min20_svmr_man")
+```
+
+```{r}
+pca_training.svm.radial_manual
+```
+
+
+```{r}
+pca_mejor_svmr_6744 = pca_training.svm.radial$results[order(pca_training.svm.radial$results$Accuracy, decreasing = TRUE),][1,]["Accuracy"]
+```
+
+```{r}
+set.seed(1234)
+
+tiempo = Sys.time()
+
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+param.polinomial = expand.grid(C = c(0.01,0.05,0.1,0.2,0.5,1,5,10), degree = c(1,2,3,4), scale = c(0.01,0.1,1))
+
+pca_training.svm.polinomial = train(grupo ~ ., data = pca_train_data,
+                      method = "svmPoly",
+                      tuneGrid = param.polinomial,
+                      metric = "Accuracy",
+                      preProcess = c("center", "scale"),
+                      trControl = control.cv.10)
+
+
+tiempo.fin = Sys.time() - tiempo
+print(tiempo.fin)
+
+
+stopCluster(cl)
+
+saveRDS(pca_training.svm.polinomial, "genset_var90_min20_svmp")
+```
+
+```{r}
+pca_mejor_svmp_6744 = pca_training.svm.polinomial$results[order(pca_training.svm.polinomial$results$Accuracy, decreasing = TRUE),][1,]["Accuracy"]
+```
+
+```{r}
+raiz_variables = round(sqrt(ncol(pca_train_data)))
+
+tunegrid.rf.1 = expand.grid(mtry = c(raiz_variables-15,raiz_variables-10,raiz_variables-5,raiz_variables,raiz_variables+5,raiz_variables+10, raiz_variables+20, raiz_variables+40, raiz_variables+60, raiz_variables+100),
+                            min.node.size = c(1,2,3,4,5),
+                            splitrule = c("gini","extratrees","hellinger"))
+
+
+
+set.seed(1234)
+
+tiempo = Sys.time()
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+pca_training.rf.1 = train(grupo ~ ., data = pca_train_data,
+                      method = "ranger",
+                      tuneGrid = tunegrid.rf.1,
+                      metric = "Accuracy",
+                      preProcess = c("center", "scale"),
+                      trControl = control.cv.10)
+
+tiempo.fin = Sys.time() - tiempo
+print(tiempo.fin)
+
+stopCluster(cl)
+
+saveRDS(pca_training.rf.1, "genset_var90_min20_rf")
+```
+
+```{r}
+pca_mejor_rf_6744 = pca_training.rf.1$results[order(pca_training.rf.1$results$Accuracy, decreasing = TRUE),][1,]["Accuracy"]
+```
+
+```{r}
+grid.diab.1 = expand.grid(laplace = 0:6,
+                       usekernel = c(TRUE,FALSE),
+                       adjust = 1:6)
+
+set.seed(1234)
+
+cl = makeCluster(25)
+registerDoParallel(cl)
+
+pca_diab.models.1 <- train(grupo ~ ., data = pca_train_data, 
+                 method = "naive_bayes",
+                 trControl = control.cv.10,
+                 preProcess = c("center", "scale"),
+                 tuneGrid=grid.diab.1)
+
+stopCluster(cl)
+
+saveRDS(pca_diab.models.1, "genset_var90_min20_nb")
+```
+
+```{r Resultado Modelos Diabetes}
+pca_mejor_pca_6744 = pca_diab.models.1$results[order(pca_diab.models.1$results$Accuracy, decreasing = TRUE),][1,]["Accuracy"]
+```
+
+```{r}
+pca_resultados_rfe6744 = data.frame(Algoritmos = c("RF","SVML","SVMR","SVMP","NB"),
+                                     Máx.Accuracy = c(pca_mejor_rf_6744$Accuracy, pca_mejor_svml_6744$Accuracy, pca_mejor_svmr_6744$Accuracy, pca_mejor_svmp_6744$Accuracy, pca_mejor_pca_6744$Accuracy))
+pca_resultados_rfe6744[order(pca_resultados_rfe6744$Máx.Accuracy, decreasing = TRUE),]
+```
+
+### Test con RFE 6744
+
+```{r}
+set.seed(1234)
+
+pca_6744_predict_rf = predict(pca_training.rf.1, newdata = pca_test_data)
+
+pca_matriz.confusion.rf = confusionMatrix(pca_6744_predict_rf, pca_test_data$grupo)
+pca_matriz.confusion.rf$byClass[c("Precision","Sensitivity","Specificity","F1")]
+```
+```{r}
+set.seed(1234)
+
+pca_6744_predict_svml = predict(pca_training.svm.lineal, newdata = pca_test_data)
+
+pca_matriz.confusion.svml = confusionMatrix(pca_6744_predict_svml, pca_test_data$grupo)
+pca_matriz.confusion.svml$byClass[c("Precision","Sensitivity","Specificity","F1")]
+```
+```{r}
+set.seed(1234)
+
+pca_6744_predict_svmr = predict(pca_training.svm.radial, newdata = pca_test_data)
+
+pca_matriz.confusion.svmr = confusionMatrix(pca_6744_predict_svmr, pca_test_data$grupo)
+pca_matriz.confusion.svmr$byClass[c("Precision","Sensitivity","Specificity","F1")]
+```
+
+```{r}
+set.seed(1234)
+
+pca_6744_predict_svmp = predict(pca_training.svm.polinomial, newdata = pca_test_data)
+
+pca_matriz.confusion.svmp = confusionMatrix(pca_6744_predict_svmp, pca_test_data$grupo)
+pca_matriz.confusion.svmp$byClass[c("Precision","Sensitivity","Specificity","F1")]
+```
+
+```{r}
+set.seed(1234)
+
+pca_6744_predict_nb = predict(pca_diab.models.1, newdata = pca_test_data)
+
+pca_matriz.confusion.nb = confusionMatrix(pca_6744_predict_nb, pca_test_data$grupo)
+pca_matriz.confusion.nb$byClass[c("Precision","Sensitivity","Specificity","F1")]
+``` 
+
+```{r}
+set.seed(1234)
+
+pca_6744_predict_svmr_manual = predict(pca_training.svm.radial_manual, newdata = pca_test_data)
+
+pca_matriz.confusion.svmr_manual = confusionMatrix(pca_6744_predict_svmr_manual, pca_test_data$grupo)
+pca_matriz.confusion.svmr_manual$byClass[c("Precision","Sensitivity","Specificity","F1")]
+```
+
