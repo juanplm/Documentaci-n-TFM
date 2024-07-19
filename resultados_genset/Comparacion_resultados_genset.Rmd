@@ -1,0 +1,490 @@
+---
+title: "Comparacion Modelos GenSet"
+author: "Juan Pedro Lopez Marin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(randomForest)
+library(doParallel)
+library(dplyr)
+library(writexl)
+```
+
+# Comparación de modelos con datos de entrenamiento
+
+```{r}
+resultado_genset_var80_min10_svml = readRDS('genset_var80_min10_svml')
+resultado_genset_var80_min10_svmr_man = readRDS('genset_var80_min10_svmr_man')
+resultado_genset_var80_min10_svmr_auto = readRDS('genset_var80_min10_svmr_auto')
+resultado_genset_var80_min10_svmp = readRDS('genset_var80_min10_svmp')
+resultado_genset_var80_min10_rf = readRDS('genset_var80_min10_rf')
+resultado_genset_var80_min10_nb = readRDS('genset_var80_min10_nb')
+resultado_genset_var80_min20_svml = readRDS('genset_var80_min20_svml')
+resultado_genset_var80_min20_svmr_man = readRDS('genset_var80_min20_svmr_man')
+resultado_genset_var80_min20_svmr_auto = readRDS('genset_var80_min20_svmr_auto')
+resultado_genset_var80_min20_svmp = readRDS('genset_var80_min20_svmp')
+resultado_genset_var80_min20_rf = readRDS('genset_var80_min20_rf')
+resultado_genset_var80_min20_nb = readRDS('genset_var80_min20_nb')
+resultado_genset_var80_min30_svml = readRDS('genset_var80_min30_svml')
+resultado_genset_var80_min30_svmr_man = readRDS('genset_var80_min30_svmr_man')
+resultado_genset_var80_min30_svmr_auto = readRDS('genset_var80_min30_svmr_auto')
+resultado_genset_var80_min30_svmp = readRDS('genset_var80_min30_svmp')
+resultado_genset_var80_min30_rf = readRDS('genset_var80_min30_rf')
+resultado_genset_var80_min30_nb = readRDS('genset_var80_min30_nb')
+resultado_genset_var80_min40_svml = readRDS('genset_var80_min40_svml')
+resultado_genset_var80_min40_svmr_man = readRDS('genset_var80_min40_svmr_man')
+resultado_genset_var80_min40_svmr_auto = readRDS('genset_var80_min40_svmr_auto')
+resultado_genset_var80_min40_svmp = readRDS('genset_var80_min40_svmp')
+resultado_genset_var80_min40_rf = readRDS('genset_var80_min40_rf')
+resultado_genset_var80_min40_nb = readRDS('genset_var80_min40_nb')
+resultado_genset_var85_min10_svml = readRDS('genset_var85_min10_svml')
+resultado_genset_var85_min10_svmr_man = readRDS('genset_var85_min10_svmr_man')
+resultado_genset_var85_min10_svmr_auto = readRDS('genset_var85_min10_svmr_auto')
+resultado_genset_var85_min10_svmp = readRDS('genset_var85_min10_svmp')
+resultado_genset_var85_min10_rf = readRDS('genset_var85_min10_rf')
+resultado_genset_var85_min10_nb = readRDS('genset_var85_min10_nb')
+resultado_genset_var85_min20_svml = readRDS('genset_var85_min20_svml')
+resultado_genset_var85_min20_svmr_man = readRDS('genset_var85_min20_svmr_man')
+resultado_genset_var85_min20_svmr_auto = readRDS('genset_var85_min20_svmr_auto')
+resultado_genset_var85_min20_svmp = readRDS('genset_var85_min20_svmp')
+resultado_genset_var85_min20_rf = readRDS('genset_var85_min20_rf')
+resultado_genset_var85_min20_nb = readRDS('genset_var85_min20_nb')
+resultado_genset_var85_min30_svml = readRDS('genset_var85_min30_svml')
+resultado_genset_var85_min30_svmr_man = readRDS('genset_var85_min30_svmr_man')
+resultado_genset_var85_min30_svmr_auto = readRDS('genset_var85_min30_svmr_auto')
+resultado_genset_var85_min30_svmp = readRDS('genset_var85_min30_svmp')
+resultado_genset_var85_min30_rf = readRDS('genset_var85_min30_rf')
+resultado_genset_var85_min30_nb = readRDS('genset_var85_min30_nb')
+resultado_genset_var85_min40_svml = readRDS('genset_var85_min40_svml')
+resultado_genset_var85_min40_svmr_man = readRDS('genset_var85_min40_svmr_man')
+resultado_genset_var85_min40_svmr_auto = readRDS('genset_var85_min40_svmr_auto')
+resultado_genset_var85_min40_svmp = readRDS('genset_var85_min40_svmp')
+resultado_genset_var85_min40_rf = readRDS('genset_var85_min40_rf')
+resultado_genset_var85_min40_nb = readRDS('genset_var85_min40_nb')
+resultado_genset_var90_min10_svml = readRDS('genset_var90_min10_svml')
+resultado_genset_var90_min10_svmr_man = readRDS('genset_var90_min10_svmr_man')
+resultado_genset_var90_min10_svmr_auto = readRDS('genset_var90_min10_svmr_auto')
+resultado_genset_var90_min10_svmp = readRDS('genset_var90_min10_svmp')
+resultado_genset_var90_min10_rf = readRDS('genset_var90_min10_rf')
+resultado_genset_var90_min10_nb = readRDS('genset_var90_min10_nb')
+resultado_genset_var90_min20_svml = readRDS('genset_var90_min20_svml')
+resultado_genset_var90_min20_svmr_man = readRDS('genset_var90_min20_svmr_man')
+resultado_genset_var90_min20_svmr_auto = readRDS('genset_var90_min20_svmr_auto')
+resultado_genset_var90_min20_svmp = readRDS('genset_var90_min20_svmp')
+resultado_genset_var90_min20_rf = readRDS('genset_var90_min20_rf')
+resultado_genset_var90_min20_nb = readRDS('genset_var90_min20_nb')
+resultado_genset_var90_min30_svml = readRDS('genset_var90_min30_svml')
+resultado_genset_var90_min30_svmr_man = readRDS('genset_var90_min30_svmr_man')
+resultado_genset_var90_min30_svmr_auto = readRDS('genset_var90_min30_svmr_auto')
+resultado_genset_var90_min30_svmp = readRDS('genset_var90_min30_svmp')
+resultado_genset_var90_min30_rf = readRDS('genset_var90_min30_rf')
+resultado_genset_var90_min30_nb = readRDS('genset_var90_min30_nb')
+resultado_genset_var90_min40_svml = readRDS('genset_var90_min40_svml')
+resultado_genset_var90_min40_svmr_man = readRDS('genset_var90_min40_svmr_man')
+resultado_genset_var90_min40_svmr_auto = readRDS('genset_var90_min40_svmr_auto')
+resultado_genset_var90_min40_svmp = readRDS('genset_var90_min40_svmp')
+resultado_genset_var90_min40_rf = readRDS('genset_var90_min40_rf')
+resultado_genset_var90_min40_nb = readRDS('genset_var90_min40_nb')
+resultado_genset_sinvar0_min10_svml = readRDS('genset_sinvar0_min10_svml')
+resultado_genset_sinvar0_min10_svmr_man = readRDS('genset_sinvar0_min10_svmr_man')
+resultado_genset_sinvar0_min10_svmr_auto = readRDS('genset_sinvar0_min10_svmr_auto')
+resultado_genset_sinvar0_min10_svmp = readRDS('genset_sinvar0_min10_svmp')
+resultado_genset_sinvar0_min10_rf = readRDS('genset_sinvar0_min10_rf')
+resultado_genset_sinvar0_min10_nb = readRDS('genset_sinvar0_min10_nb')
+resultado_genset_sinvar0_min20_svml = readRDS('genset_sinvar0_min20_svml')
+resultado_genset_sinvar0_min20_svmr_man = readRDS('genset_sinvar0_min20_svmr_man')
+resultado_genset_sinvar0_min20_svmr_auto = readRDS('genset_sinvar0_min20_svmr_auto')
+resultado_genset_sinvar0_min20_svmp = readRDS('genset_sinvar0_min20_svmp')
+resultado_genset_sinvar0_min20_rf = readRDS('genset_sinvar0_min20_rf')
+resultado_genset_sinvar0_min20_nb = readRDS('genset_sinvar0_min20_nb')
+```
+
+```{r}
+# Crear una lista con todos los objetos donde estan almacenados los modelos generados
+objetos <- list(
+  var80_min10_svml = resultado_genset_var80_min10_svml,
+  var80_min10_svmr_man = resultado_genset_var80_min10_svmr_man,
+  var80_min10_svmr_auto = resultado_genset_var80_min10_svmr_auto,
+  var80_min10_svmp = resultado_genset_var80_min10_svmp,
+  var80_min10_rf = resultado_genset_var80_min10_rf,
+  var80_min10_nb = resultado_genset_var80_min10_nb,
+  var80_min20_svml = resultado_genset_var80_min20_svml,
+  var80_min20_svmr_man = resultado_genset_var80_min20_svmr_man,
+  var80_min20_svmr_auto = resultado_genset_var80_min20_svmr_auto,
+  var80_min20_svmp = resultado_genset_var80_min20_svmp,
+  var80_min20_rf = resultado_genset_var80_min20_rf,
+  var80_min20_nb = resultado_genset_var80_min20_nb,
+  var80_min30_svml = resultado_genset_var80_min30_svml,
+  var80_min30_svmr_man = resultado_genset_var80_min30_svmr_man,
+  var80_min30_svmr_auto = resultado_genset_var80_min30_svmr_auto,
+  var80_min30_svmp = resultado_genset_var80_min30_svmp,
+  var80_min30_rf = resultado_genset_var80_min30_rf,
+  var80_min30_nb = resultado_genset_var80_min30_nb,
+  var80_min40_svml = resultado_genset_var80_min40_svml,
+  var80_min40_svmr_man = resultado_genset_var80_min40_svmr_man,
+  var80_min40_svmr_auto = resultado_genset_var80_min40_svmr_auto,
+  var80_min40_svmp = resultado_genset_var80_min40_svmp,
+  var80_min40_rf = resultado_genset_var80_min40_rf,
+  var80_min40_nb = resultado_genset_var80_min40_nb,
+  var85_min10_svml = resultado_genset_var85_min10_svml,
+  var85_min10_svmr_man = resultado_genset_var85_min10_svmr_man,
+  var85_min10_svmr_auto = resultado_genset_var85_min10_svmr_auto,
+  var85_min10_svmp = resultado_genset_var85_min10_svmp,
+  var85_min10_rf = resultado_genset_var85_min10_rf,
+  var85_min10_nb = resultado_genset_var85_min10_nb,
+  var85_min20_svml = resultado_genset_var85_min20_svml,
+  var85_min20_svmr_man = resultado_genset_var85_min20_svmr_man,
+  var85_min20_svmr_auto = resultado_genset_var85_min20_svmr_auto,
+  var85_min20_svmp = resultado_genset_var85_min20_svmp,
+  var85_min20_rf = resultado_genset_var85_min20_rf,
+  var85_min20_nb = resultado_genset_var85_min20_nb,
+  var85_min30_svml = resultado_genset_var85_min30_svml,
+  var85_min30_svmr_man = resultado_genset_var85_min30_svmr_man,
+  var85_min30_svmr_auto = resultado_genset_var85_min30_svmr_auto,
+  var85_min30_svmp = resultado_genset_var85_min30_svmp,
+  var85_min30_rf = resultado_genset_var85_min30_rf,
+  var85_min30_nb = resultado_genset_var85_min30_nb,
+  var85_min40_svml = resultado_genset_var85_min40_svml,
+  var85_min40_svmr_man = resultado_genset_var85_min40_svmr_man,
+  var85_min40_svmr_auto = resultado_genset_var85_min40_svmr_auto,
+  var85_min40_svmp = resultado_genset_var85_min40_svmp,
+  var85_min40_rf = resultado_genset_var85_min40_rf,
+  var85_min40_nb = resultado_genset_var85_min40_nb,
+  var90_min10_svml = resultado_genset_var90_min10_svml,
+  var90_min10_svmr_man = resultado_genset_var90_min10_svmr_man,
+  var90_min10_svmr_auto = resultado_genset_var90_min10_svmr_auto,
+  var90_min10_svmp = resultado_genset_var90_min10_svmp,
+  var90_min10_rf = resultado_genset_var90_min10_rf,
+  var90_min10_nb = resultado_genset_var90_min10_nb,
+  var90_min20_svml = resultado_genset_var90_min20_svml,
+  var90_min20_svmr_man = resultado_genset_var90_min20_svmr_man,
+  var90_min20_svmr_auto = resultado_genset_var90_min20_svmr_auto,
+  var90_min20_svmp = resultado_genset_var90_min20_svmp,
+  var90_min20_rf = resultado_genset_var90_min20_rf,
+  var90_min20_nb = resultado_genset_var90_min20_nb,
+  var90_min30_svml = resultado_genset_var90_min30_svml,
+  var90_min30_svmr_man = resultado_genset_var90_min30_svmr_man,
+  var90_min30_svmr_auto = resultado_genset_var90_min30_svmr_auto,
+  var90_min30_svmp = resultado_genset_var90_min30_svmp,
+  var90_min30_rf = resultado_genset_var90_min30_rf,
+  var90_min30_nb = resultado_genset_var90_min30_nb,
+  var90_min40_svml = resultado_genset_var90_min40_svml,
+  var90_min40_svmr_man = resultado_genset_var90_min40_svmr_man,
+  var90_min40_svmr_auto = resultado_genset_var90_min40_svmr_auto,
+  var90_min40_svmp = resultado_genset_var90_min40_svmp,
+  var90_min40_rf = resultado_genset_var90_min40_rf,
+  var90_min40_nb = resultado_genset_var90_min40_nb,
+  sinvar0_min10_svml = resultado_genset_sinvar0_min10_svml,
+  sinvar0_min10_svmr_man = resultado_genset_sinvar0_min10_svmr_man,
+  sinvar0_min10_svmr_auto = resultado_genset_sinvar0_min10_svmr_auto,
+  sinvar0_min10_svmp = resultado_genset_sinvar0_min10_svmp,
+  sinvar0_min10_rf = resultado_genset_sinvar0_min10_rf,
+  sinvar0_min10_nb = resultado_genset_sinvar0_min10_nb,
+  sinvar0_min20_svml = resultado_genset_sinvar0_min20_svml,
+  sinvar0_min20_svmr_man = resultado_genset_sinvar0_min20_svmr_man,
+  sinvar0_min20_svmr_auto = resultado_genset_sinvar0_min20_svmr_auto,
+  sinvar0_min20_svmp = resultado_genset_sinvar0_min20_svmp,
+  sinvar0_min20_rf = resultado_genset_sinvar0_min20_rf,
+  sinvar0_min20_nb = resultado_genset_sinvar0_min20_nb
+)
+
+# Crear un dataframe vacío para almacenar los resultados
+resultados_df <- data.frame()
+
+# Recorrer cada objeto en la lista
+for (nombre in names(objetos)) {
+  objeto <- objetos[[nombre]]
+  
+  # Extraer y ordenar los resultados por precisión
+  mejor_resultado <- objeto$results[order(objeto$results$Accuracy, decreasing = TRUE), ][1,c("Accuracy","Kappa")]
+  
+  # Añadir el método/algoritmo utilziado en cada caso
+  mejor_resultado = c("Algoritmo" = objeto$method,mejor_resultado)
+  
+  # Añadir los valores de los hiperparámetros
+  combinacion_hiperparametros = paste(names(objeto$bestTune), objeto$bestTune, sep = "=", collapse = ", ")
+  mejor_resultado = c(mejor_resultado, "Hiperparametros" = combinacion_hiperparametros)
+  
+  # Añadir la varianza total acumulada y el mínimo de conteo de variantes para cada caso
+  mejor_resultado = c(mejor_resultado, "Condiciones" = nombre)
+  
+  # Añadir la fila al dataframe final
+  resultados_df = rbind(resultados_df, mejor_resultado)
+  
+}
+# Ver el dataframe resultante
+resultados_df[order(resultados_df$Accuracy, decreasing = TRUE),]
+
+```
+
+
+
+# Comparación de modelos con datos de test
+
+## Carga de los datos
+
+```{r}
+categoria_muestras = read.csv(file = "samples.csv", sep = "\t")
+
+genes_variantes = as.data.frame(t(read.csv2(file = "geneset.csv", sep = "\t")))
+names(genes_variantes) = genes_variantes[1,]
+genes_variantes = genes_variantes[-1,]
+genes_variantes[] <- lapply(genes_variantes, function(x) as.numeric(as.character(x)))
+
+genes_variantes$grupo = categoria_muestras$class
+genes_variantes = genes_variantes[genes_variantes$grupo != "neuro_muscular", ]
+genes_variantes$grupo = as.factor(genes_variantes$grupo)
+
+
+genes_variantes = genes_variantes %>%
+    select(last_col(), everything())
+
+suma_variantes = colSums(genes_variantes[-1])
+```
+
+
+## Generación de las predicciones 
+
+```{r}
+# Inicialización del dataframe de resultados
+resultados_test_df <- data_frame(
+  Algoritmo = character(),
+  Precisión = numeric(),
+  Sensibilidad = numeric(),
+  Especificidad = numeric(),
+  Hiperparametros = character(),
+  Condiciones = character()
+)
+
+# Iterar sobre los objetos
+for (nombre in names(objetos)) {
+  set.seed(1234)
+  
+  mensaje_diagnostico <- paste("Procesando objeto", nombre)
+  print(mensaje_diagnostico)
+  
+  objeto <- objetos[[nombre]]
+  
+  parametros_pca <-  unlist(strsplit(nombre, split = "_"))
+  print("Parametros PCA:")
+  print(parametros_pca)
+  
+  min_varianza <- as.integer(gsub("[a-zA-Z]", "", parametros_pca)[1]) * 0.01
+  min_conteo <- as.integer(gsub("[a-zA-Z]", "", parametros_pca)[2])
+  
+  if (min_varianza == 0){
+    min_varianza = 0.85
+  }
+  
+  print("Min varianza y min conteo:")
+  print(min_varianza)
+  print(min_conteo)
+  
+  genes_filtrados <- suma_variantes > min_conteo
+  genes_variantes_min <- genes_variantes[, genes_filtrados]
+  
+  if (min_conteo == 40) {
+    genes_variantes_min$grupo = genes_variantes$grupo
+    genes_variantes_min$grupo = as.factor(genes_variantes_min$grupo)
+    genes_variantes_min = genes_variantes_min %>%
+        select(last_col(), everything())
+  }
+  
+  print("Número de genes después de filtrar:")
+  print(sum(genes_filtrados))
+  
+  # Verificar si genes_variantes_min tiene filas después del filtro
+  if (nrow(genes_variantes_min) == 0) {
+    mensaje_error <- paste("No hay datos después de aplicar el filtro para", nombre)
+    message(mensaje_error)
+    next  # Saltar al siguiente objeto si no hay datos
+  }
+  
+  set.seed(1234)
+  pca_result <- prcomp(genes_variantes_min[, -1], center = TRUE)
+  
+  # Porcentaje de varianza explicada por cada componente
+  explained_variance <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+  
+  # Porcentaje acumulado de varianza explicada
+  cumulative_variance <- cumsum(explained_variance)
+  
+  # Determinar el número de componentes que explican al menos el 85% de la varianza
+  num_components <- which(cumulative_variance >= min_varianza)[1]
+  print("Número de componentes seleccionados:")
+  print(num_components)
+  
+  # Seleccionar las componentes principales que explican el 85% de la varianza
+  selected_pcs <- pca_result$x[, 1:num_components]
+  
+  # Verificar si selected_pcs tiene filas después de la selección
+  if (nrow(selected_pcs) == 0) {
+    mensaje_error <- paste("No hay datos después de seleccionar componentes principales para", nombre)
+    message(mensaje_error)
+    next  # Saltar al siguiente objeto si no hay datos
+  }
+  
+  # Convertir a dataframe
+  selected_pcs_df <- as.data.frame(selected_pcs)
+  
+  # Añadir la variable de respuesta al dataframe de componentes principales seleccionados
+  selected_pcs_df$grupo <- as.factor(genes_variantes_min$grupo)
+  
+  # Verificar si selected_pcs_df tiene filas después de añadir grupo
+  if (nrow(selected_pcs_df) == 0) {
+    mensaje_error <- paste("No hay datos después de añadir grupo para", nombre)
+    message(mensaje_error)
+    next  # Saltar al siguiente objeto si no hay datos
+  }
+  
+  set.seed(1234)
+  pca_particion_2 <- createDataPartition(selected_pcs_df$grupo, p = 0.85, list = FALSE)
+  pca_train_data <- selected_pcs_df[pca_particion_2, ]
+  pca_test_data <- selected_pcs_df[-pca_particion_2, ]
+  
+  # Verificar si hay datos en pca_test_data
+  if (nrow(pca_test_data) == 0) {
+    mensaje_error <- paste("No hay datos en pca_test_data para", nombre)
+    message(mensaje_error)
+    next  # Saltar al siguiente objeto si no hay datos
+  }
+  
+  # Realizar predicción
+  set.seed(1234)
+  prediccion <- predict(objeto, newdata = pca_test_data)
+  
+  # Calcular matriz de confusión
+  set.seed(1234)
+  matriz_conf <- confusionMatrix(prediccion, pca_test_data$grupo)
+  
+  # Combinación de hiperparámetros
+  combinacion_hiperparametros <- paste(names(objeto$bestTune), objeto$bestTune, sep = "=", collapse = ", ")
+  
+  # Métricas de calidad
+  metricas_calidad <- c(
+    round(as.numeric(matriz_conf$overall["Accuracy"][[1]]), 4),
+    round(as.numeric(matriz_conf$byClass["Sensitivity"][[1]]), 4),
+    round(as.numeric(matriz_conf$byClass["Specificity"][[1]]), 4)
+  )
+  
+  # Crear fila a insertar
+  fila_a_insertar <- c(
+    objeto$method,
+    metricas_calidad,
+    combinacion_hiperparametros,
+    nombre
+  )
+  
+  # Añadir fila al dataframe de resultados
+  resultados_test_df <- bind_rows(resultados_test_df, data_frame(
+    Algoritmo = fila_a_insertar[1],
+    Precisión = as.numeric(fila_a_insertar[2]),
+    Sensibilidad = as.numeric(fila_a_insertar[3]),
+    Especificidad = as.numeric(fila_a_insertar[4]),
+    Hiperparametros = fila_a_insertar[5],
+    Condiciones = fila_a_insertar[6]
+  ))
+}
+
+saveRDS(resultados_test_df, "df_metricas_modelos_genset")
+
+# Mostrar resultados
+print(resultados_test_df)
+
+```
+
+
+```{r}
+resultados_genset = readRDS("df_metricas_modelos_genset")
+
+resultados_genset[order(resultados_genset$Especificidad,resultados_genset$Precisión, resultados_genset$Sensibilidad,decreasing = TRUE),]
+```
+
+```{r}
+library(pheatmap)
+
+genset_heatmap = resultados_genset[,c(2,3,4,6)]
+genset_heatmap
+genset_heatmap = as.data.frame(genset_heatmap)
+rownames(genset_heatmap) = genset_heatmap$Condiciones
+genset_heatmap = genset_heatmap[,-4]
+genset_heatmap = as.matrix(genset_heatmap)
+heatmap(genset_heatmap, scale = "column")
+
+# Crear una paleta de colores personalizada
+color_palette <- colorRampPalette(c("dodgerblue3","white", "firebrick1"))(50)
+
+# Crear el heatmap con personalización
+
+crear_heatmap
+pheatmap(genset_heatmap, 
+         cluster_rows = TRUE,
+         cluster_cols = TRUE,
+         scale = "row",
+         show_rownames = FALSE,
+         color = color_palette,
+         main = "Heatmap de Métricas de Calidad")
+```
+
+```{r}
+genset_heatmap = as.data.frame(genset_heatmap)
+resultados_min10 = genset_heatmap[grepl("min10", rownames(genset_heatmap)),]
+resultados_min20 = genset_heatmap[grepl("min20", rownames(genset_heatmap)),]
+resultados_min30 = genset_heatmap[grepl("min30", rownames(genset_heatmap)),]
+resultados_min40 = genset_heatmap[grepl("min40", rownames(genset_heatmap)),]
+```
+
+```{r}
+library(ggplot2)
+library(grid)
+library(pheatmap)
+
+
+
+crear_heatmap <- function(matriz, color_palette, main_title, filename) {
+    # Crear el heatmap
+    heatmap <- pheatmap(matriz, 
+                        cluster_rows = TRUE,
+                        cluster_cols = TRUE,
+                        treeheight_row = 0,    # Ocultar dendograma de filas
+                        treeheight_col = 0,    # Ocultar dendograma de columnas
+                        show_rownames = TRUE,
+                        fontsize_col = 16,
+                        angle_col = 0,        # Rotar nombres de columnas 45 grados
+                        color = color_palette,
+                        main = main_title)
+    
+    # Guardar el heatmap como PNG
+    ggsave(filename, plot = heatmap, device = "png")
+    
+    # Retornar el objeto heatmap (opcional)
+    return(heatmap)
+}
+```
+
+
+```{r}
+colores_heatmap <- colorRampPalette(c("dodgerblue3","white", "firebrick1"))(50)
+
+par(mfrow = c(2, 2)) 
+
+crear_heatmap(resultados_min10, colores_heatmap, "Resultados - Conteo Variables > 10", "heatmap conteo min10.png")
+crear_heatmap(resultados_min20, colores_heatmap, "Resultados - Conteo Variables > 20", "heatmap conteo min20.png")
+crear_heatmap(resultados_min30, colores_heatmap, "Resultados - Conteo Variables > 30", "heatmap conteo min30.png")
+crear_heatmap(resultados_min40, colores_heatmap, "Resultados - Conteo Variables > 40", "heatmap conteo min40.png")
+```
+
+
+```{r}
+resultados_min20[order(resultados_min20$Especificidad, decreasing = TRUE),]
+```
+
+
+
